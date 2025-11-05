@@ -48,13 +48,13 @@ function track(event: any) {
         callButtonClicked = true;
     }
     if (event.event === "leave_voice_channel") {
-        if (!callButtonClicked && !currentChannelId) {
+        if (settings.store.protectFromDisconnect && !callButtonClicked && !currentChannelId) {
             protectFromKick(oldChannelId!);
         }
         callButtonClicked = false;
     }
     if (event.event === "join_voice_channel") {
-        if (event.properties.was_moved) {
+        if (settings.store.protectFromMove && event.properties.was_moved) {
             protectFromKick(oldChannelId!);
         }
     }
@@ -81,7 +81,7 @@ function protectVoiceStateUpdate(voiceState: VoiceState) {
 }
 
 function protectFromKick(channelId: string) {
-    if (settings.store.protectFromKick && !PermissionStore.can(PermissionsBits.CONNECT, channelId)) {
+    if (!PermissionStore.can(PermissionsBits.CONNECT, channelId)) {
         selectVoiceChannel(channelId);
     }
 }
