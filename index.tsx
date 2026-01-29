@@ -22,16 +22,22 @@ const { setServerMute, setServerDeaf }: {
 } = findByPropsLazy("setServerMute", "setServerDeaf");
 
 export default definePlugin({
-    name: "AutoProtect",
-    description: "Automatically protect users in voice channels from being kicked or muted.",
-    authors: [{
-        name: "nicola02nb",
-        id: 257900031351193600n
-    }],
+    name: "AutoVoiceProtect",
+    description: "Automatically protect YOU in a voice channels from being kicked or muted.",
+    authors: [
+        {
+            name: "nicola02nb",
+            id: 257900031351193600n
+        },
+        {
+            name: "IMXNOOBX",
+            id: 652969127756955658n
+        },
+    ],
     settings,
     flux: {
         TRACK: track,
-        VOICE_STATE_UPDATES: protect
+        VOICE_STATE_UPDATES: voiceStateUpdate
     },
     start: () => {
     },
@@ -44,44 +50,62 @@ let oldChannelId: string | null = null;
 let currentChannelId: string | null = null;
 
 function track(event: any) {
-    if (event.event === "call_button_clicked") {
+    if (event.event === "call_button_clicked")
         callButtonClicked = true;
-    }
+
     if (event.event === "leave_voice_channel") {
-        if (settings.store.protectFromDisconnect && !callButtonClicked && !currentChannelId) {
-            protectFromKick(oldChannelId!);
-        }
+        if (
+            settings.store.protectFromDisconnect
+            && !callButtonClicked
+            && !currentChannelId
+        )
+            joinVoiceChannel(oldChannelId!);
+
         callButtonClicked = false;
     }
+
     if (event.event === "join_voice_channel") {
-        if (settings.store.protectFromMove && event.properties.was_moved) {
-            protectFromKick(oldChannelId!);
-        }
+        if (
+            settings.store.protectFromMove
+            && event.properties.was_moved
+        )
+            joinVoiceChannel(oldChannelId!);
     }
 }
 
-function protect(event: VoiceStateUpdateEvent) {
+function voiceStateUpdate(event: VoiceStateUpdateEvent) {
     const userId = UserStore.getCurrentUser().id;
+
     for (const voiceState of event.voiceStates) {
-        if (voiceState.userId === userId) {
-            oldChannelId = voiceState.oldChannelId || null;
-            currentChannelId = voiceState.channelId || null;
-            protectVoiceStateUpdate(voiceState);
-        }
+        if (voiceState.userId !== userId)
+            continue;
+
+        oldChannelId = voiceState.oldChannelId || null;
+        currentChannelId = voiceState.channelId || null;
+
+        handleUnwantedVoiceStateUpdate(voiceState);
     }
 }
 
-function protectVoiceStateUpdate(voiceState: VoiceState) {
-    if (settings.store.protectFromMute && voiceState.mute && PermissionStore.canWithPartialContext(PermissionsBits.MUTE_MEMBERS, { channelId: voiceState.channelId })) {
+function handleUnwantedVoiceStateUpdate(voiceState: VoiceState) {
+    if (
+        settings.store.protectFromMute
+        && voiceState.mute
+        && PermissionStore.canWithPartialContext(PermissionsBits.MUTE_MEMBERS, { channelId: voiceState.channelId! })
+    )
         setServerMute(voiceState.guildId, voiceState.userId, false);
-    }
-    if (settings.store.protectFromDeaf && voiceState.deaf && PermissionStore.canWithPartialContext(PermissionsBits.DEAFEN_MEMBERS, { channelId: voiceState.channelId })) {
+
+    if (
+        settings.store.protectFromDeaf
+        && voiceState.deaf
+        && PermissionStore.canWithPartialContext(PermissionsBits.DEAFEN_MEMBERS, { channelId: voiceState.channelId! })
+    )
         setServerDeaf(voiceState.guildId, voiceState.userId, false);
-    }
 }
 
-function protectFromKick(channelId: string) {
-    if (!PermissionStore.can(PermissionsBits.CONNECT, channelId)) {
-        selectVoiceChannel(channelId);
-    }
+function joinVoiceChannel(channelId: string) {
+    if (!PermissionStore.canWithPartialContext(PermissionsBits.CONNECT, { channelId: channelId }))
+        return;
+
+    selectVoiceChannel(channelId);
 }
