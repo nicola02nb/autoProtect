@@ -1,4 +1,4 @@
-# AutoProtect for Vencord
+# AutoVoiceProtect for Vencord
 A Vencord(VC) plugin that protects you from being muted, deafen, disconnected, moved by server admins if you have enough permissions.
 
 ## Features:
