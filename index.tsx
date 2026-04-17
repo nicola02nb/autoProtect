@@ -7,7 +7,7 @@
 import definePlugin from "@utils/types";
 import { findByPropsLazy } from "@webpack";
 import { PermissionsBits } from "@webpack/common";
-import { PermissionStore, UserStore } from "webpack/common/stores";
+import { PermissionStore, UserStore } from "@webpack/common/stores";
 
 import settings from "./settings";
 import { VoiceState, VoiceStateUpdateEvent } from "./types/events";
@@ -25,14 +25,8 @@ export default definePlugin({
     name: "AutoVoiceProtect",
     description: "Automatically protect YOU in a voice channels from being kicked or muted.",
     authors: [
-        {
-            name: "nicola02nb",
-            id: 257900031351193600n
-        },
-        {
-            name: "IMXNOOBX",
-            id: 652969127756955658n
-        },
+        { name: "nicola02nb", id: 257900031351193600n },
+        { name: "IMXNOOBX", id: 652969127756955658n },
     ],
     settings,
     flux: {
@@ -50,6 +44,11 @@ let oldChannelId: string | null = null;
 let currentChannelId: string | null = null;
 
 function track(event: any) {
+    if (event.event === "client_ad_heartbeat")
+        return;
+
+    // console.log(`AutoVoiceProtect: ${event.event} - dump:\n` + JSON.stringify(event, null, 2));
+
     if (event.event === "call_button_clicked")
         callButtonClicked = true;
 
@@ -70,6 +69,9 @@ function track(event: any) {
             && event.properties.was_moved
         )
             joinVoiceChannel(oldChannelId!);
+
+        oldChannelId = currentChannelId;
+        currentChannelId = event.properties.channel_id;
     }
 }
 
@@ -80,8 +82,8 @@ function voiceStateUpdate(event: VoiceStateUpdateEvent) {
         if (voiceState.userId !== userId)
             continue;
 
-        oldChannelId = voiceState.oldChannelId || null;
-        currentChannelId = voiceState.channelId || null;
+        // oldChannelId = voiceState.oldChannelId || null;
+        // currentChannelId = voiceState.channelId || null;
 
         handleUnwantedVoiceStateUpdate(voiceState);
     }
